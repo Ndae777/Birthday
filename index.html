@@ -17,7 +17,7 @@
   "recipientLine": "Happy Birthday",
   "recipientName": "Mpho",
   "subtitle": "My Big Sister",
-  "photoFile": "photo.jpeg",
+  "photoFile": "photo.jpg",
   "musicFile": "song.mp3",
   "letter": "Happy Birthday Mpho, my big sister.\n\nI love you wholeheartedly — you are a big blessing to me, mom, dad, Ako and Rea. We can't do it without you in the picture. We love you very much and look forward to the next thing that makes you smile. Every day I pray God protects you and guides your every step to remain within His love.\n\nThere's so much more I wish I could give back for what you've shown me — patience and love, above all. I hope I can mirror your kindness the way you've shown it to me.\n\nThank you, Mpho. God bless every year to come.\n\nHappy Birthday!! I love you."
 }
@@ -139,7 +139,9 @@
   }
   .page-left{
     top: 0;
-    height: auto;
+    height: var(--top-h);
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
     z-index: 1;
     display: flex;
     flex-direction: column;
@@ -440,20 +442,20 @@
     if (pageW < minPageW) pageW = minPageW;
     root.style.setProperty('--page-w', pageW.toFixed(1) + 'px');
     if (bookEl){ bookEl.classList.toggle('stacked', isStacked); }
-    requestAnimationFrame(function(){
-      var topH = pageLeftEl ? pageLeftEl.offsetHeight : 0;
-      if (!topH || topH < 60){ topH = pageW * 1.32; }
-      var maxTopH = isStacked ? Math.min(availH * 0.62, 460) : Math.min(availH, 460);
-      if (topH > maxTopH) topH = maxTopH;
-      root.style.setProperty('--top-h', topH.toFixed(1) + 'px');
-      var bottomH;
-      if (isStacked){
-        bottomH = Math.max(availH - topH, 170);
-      } else {
-        bottomH = topH;
-      }
-      root.style.setProperty('--bottom-h', bottomH.toFixed(1) + 'px');
-    });
+    var topH, bottomH;
+    if (isStacked){
+      /* Guarantee the letter page always gets a real, reachable share
+         of the screen instead of being pushed off the bottom. */
+      var minBottom = Math.max(availH * 0.34, 190);
+      topH = Math.min(availH - minBottom, pageW * 1.32, 460);
+      if (topH < 180) topH = Math.max(Math.min(180, availH * 0.5), 120);
+      bottomH = Math.max(availH - topH, 170);
+    } else {
+      topH = Math.min(availH, 460, pageW * 1.32);
+      bottomH = topH;
+    }
+    root.style.setProperty('--top-h', topH.toFixed(1) + 'px');
+    root.style.setProperty('--bottom-h', bottomH.toFixed(1) + 'px');
   }
   bookEl = document.getElementById('book');
   pageLeftEl = document.getElementById('pageLeft');
@@ -461,11 +463,6 @@
   if (document.fonts && document.fonts.ready){
     document.fonts.ready.then(computeLayout);
   }
-  /* FIX: once the real photo loads, its rendered height can change the
-     page's natural height (the old code only ever re-measured on font
-     load / resize, so a slow-loading image could leave the layout
-     sized for the fallback guess). Re-measure once it's actually in. */
-  document.getElementById('insidePhoto').addEventListener('load', computeLayout);
   window.addEventListener('resize', computeLayout);
   window.addEventListener('orientationchange', computeLayout);
   if (window.visualViewport){
